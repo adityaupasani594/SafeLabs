@@ -21,6 +21,19 @@ class MobileMainScreen extends StatefulWidget {
 
 class _MobileMainScreenState extends State<MobileMainScreen> {
   int _selectedIndex = 0;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   // Updated list of pages to include the new AI Chat Screen
   static const List<Widget> _widgetOptions = <Widget>[
@@ -30,16 +43,26 @@ class _MobileMainScreenState extends State<MobileMainScreen> {
   ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, 
-      body: _widgetOptions.elementAt(_selectedIndex),
+      extendBody: true,
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        children: _widgetOptions,
+      ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }

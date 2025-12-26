@@ -237,6 +237,7 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
 
   Widget _buildRoleSelector() {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildChoiceChip('Lab Admin'),
         const SizedBox(width: 12),
@@ -270,7 +271,7 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
           width: 1.5,
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
     );
   }
 

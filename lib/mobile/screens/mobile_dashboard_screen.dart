@@ -1,29 +1,40 @@
 
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safe_labs/core/styles.dart';
+import 'package:safe_labs/mobile/screens/mobile_add_sensor_screen.dart';
+import 'package:safe_labs/mobile/screens/mobile_select_sensor_type_screen.dart';
 
-// --- DATA MODEL ---
+// --- DATA MODELS ---
 class LabData {
   final String labName;
   final String labStatus;
   final int temperature;
-  final String gasLevelValue;
-  final String ambientLightValue;
-  final String motionValue;
-  final String doorLockValue;
   bool isACMasterOn;
 
   LabData({
     required this.labName,
     required this.labStatus,
     required this.temperature,
-    required this.gasLevelValue,
-    required this.ambientLightValue,
-    required this.motionValue,
-    required this.doorLockValue,
     required this.isACMasterOn,
+  });
+}
+
+class SensorCardData {
+  final String id;
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  SensorCardData({
+    required this.id,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
   });
 }
 
@@ -46,6 +57,8 @@ class MobileDashboardScreen extends StatefulWidget {
 
 class _MobileDashboardScreenState extends State<MobileDashboardScreen> {
   LabData? _labData;
+  List<SensorCardData> _sensors = [];
+  bool _deleteMode = false;
 
   @override
   void initState() {
@@ -62,11 +75,13 @@ class _MobileDashboardScreenState extends State<MobileDashboardScreen> {
           labStatus: "Status: Online & Secure",
           temperature: 24,
           isACMasterOn: true,
-          gasLevelValue: "Normal (12ppm)",
-          ambientLightValue: "85% (On)",
-          motionValue: "None",
-          doorLockValue: "Engaged",
         );
+        _sensors = [
+          SensorCardData(id: 'gas', title: "Gas Level", value: "Normal (12ppm)", icon: Icons.gas_meter_outlined, color: lightBlue),
+          SensorCardData(id: 'light', title: "Ambient Light", value: "85% (On)", icon: Icons.lightbulb_outline, color: cyanMint),
+          SensorCardData(id: 'motion', title: "Motion", value: "None", icon: Icons.directions_run, color: softPink),
+          SensorCardData(id: 'door', title: "Door Lock", value: "Engaged", icon: Icons.lock_outline, color: softGreen),
+        ];
       });
     });
   }
@@ -78,6 +93,49 @@ class _MobileDashboardScreenState extends State<MobileDashboardScreen> {
     });
   }
 
+  void _addSensor(String deviceName, String sensorType) {
+    final newSensor = SensorCardData(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: deviceName,
+      value: "Reading...",
+      icon: _getIconForSensorType(sensorType),
+      color: _getColorForSensorType(sensorType),
+    );
+    setState(() {
+      _sensors.add(newSensor);
+    });
+  }
+
+  void _deleteSensor(String id) {
+    setState(() {
+      _sensors.removeWhere((sensor) => sensor.id == id);
+    });
+  }
+
+  IconData _getIconForSensorType(String sensorType) {
+    final type = sensorTypes.firstWhere((t) => t.name == sensorType, orElse: () => sensorTypes.first);
+    return type.icon;
+  }
+
+  Color _getColorForSensorType(String sensorType) {
+    final availableColors = [lightBlue, cyanMint, softPink, softGreen, Colors.orange.shade100, Colors.teal.shade100];
+    return availableColors[Random().nextInt(availableColors.length)];
+  }
+
+  void _showAddSensorSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        builder: (_, controller) => AddNewSensorScreen(onSensorAdded: _addSensor),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_labData == null) {
@@ -85,19 +143,15 @@ class _MobileDashboardScreenState extends State<MobileDashboardScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 120),
       children: [
-        const SizedBox(height: 20),
         _buildHeader(_labData!.labName, _labData!.labStatus),
         const SizedBox(height: 30),
         _buildHeroSection(_labData!.temperature, _labData!.isACMasterOn),
         const SizedBox(height: 20),
-        _buildSensorGrid(
-          _labData!.gasLevelValue,
-          _labData!.ambientLightValue,
-          _labData!.motionValue,
-          _labData!.doorLockValue,
-        ),
+        _buildSensorGrid(),
+        const SizedBox(height: 30),
+        _buildDeleteModeToggle(),
       ],
     );
   }
@@ -123,7 +177,7 @@ class _MobileDashboardScreenState extends State<MobileDashboardScreen> {
             boxShadow: const [AppleShadows.button],
           ),
           child: ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: _showAddSensorSheet,
             icon: const Icon(Icons.add, size: 16),
             label: const Text("Add Sensor"),
             style: ElevatedButton.styleFrom(
@@ -140,10 +194,7 @@ class _MobileDashboardScreenState extends State<MobileDashboardScreen> {
 
   Widget _buildHeroSection(int temp, bool isAcOn) {
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32.0),
-        boxShadow: const [AppleShadows.card],
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(32.0), boxShadow: const [AppleShadows.card]),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32.0),
         child: BackdropFilter(
@@ -187,49 +238,73 @@ class _MobileDashboardScreenState extends State<MobileDashboardScreen> {
     );
   }
 
-  Widget _buildSensorGrid(String gas, String light, String motion, String door) {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
+  Widget _buildSensorGrid() {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16),
+      itemCount: _sensors.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      children: [
-        _buildSensorCard(icon: Icons.gas_meter_outlined, title: "Gas Level", value: gas, color: lightBlue),
-        _buildSensorCard(icon: Icons.lightbulb_outline, title: "Ambient Light", value: light, color: cyanMint),
-        _buildSensorCard(icon: Icons.directions_run, title: "Motion", value: motion, color: softPink),
-        _buildSensorCard(icon: Icons.lock_outline, title: "Door Lock", value: door, color: softGreen),
-      ],
+      itemBuilder: (context, index) {
+        final sensor = _sensors[index];
+        return _buildSensorCard(sensor: sensor);
+      },
     );
   }
 
-  Widget _buildSensorCard({required IconData icon, required String title, required String value, required Color color}) {
+  Widget _buildSensorCard({required SensorCardData sensor}) {
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24.0),
-        boxShadow: const [AppleShadows.card],
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(24.0), boxShadow: const [AppleShadows.card]),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24.0),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Container(
             padding: const EdgeInsets.all(16.0),
-            color: color.withOpacity(0.85),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            color: sensor.color.withOpacity(0.85),
+            child: Stack(
               children: [
-                Icon(icon, size: 32, color: blackText),
-                const Spacer(),
-                Text(title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: blackText)),
-                const SizedBox(height: 4),
-                Text(value, style: GoogleFonts.inter(fontSize: 14, color: greyText, fontWeight: FontWeight.w500)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(sensor.icon, size: 32, color: blackText),
+                    const Spacer(),
+                    Text(sensor.title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: blackText)),
+                    const SizedBox(height: 4),
+                    Text(sensor.value, style: GoogleFonts.inter(fontSize: 14, color: greyText, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+                if (_deleteMode)
+                  Positioned(
+                    top: -10,
+                    right: -10,
+                    child: IconButton(
+                      icon: const Icon(Icons.remove_circle, color: Colors.redAccent),
+                      onPressed: () => _deleteSensor(sensor.id),
+                    ),
+                  ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDeleteModeToggle() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Checkbox(
+          value: _deleteMode,
+          onChanged: (val) => setState(() => _deleteMode = val ?? false),
+          activeColor: Colors.redAccent,
+        ),
+        Text(
+          "Delete Sensors",
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: _deleteMode ? Colors.redAccent : blackText),
+        ),
+      ],
     );
   }
 }
