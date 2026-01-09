@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:safe_labs/desktop/web_dashboard_screen.dart';
 import 'package:safe_labs/mobile/screens/mobile_login_screen.dart';
 
 void main() {
@@ -11,6 +12,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Widget home;
+    if (kIsWeb) {
+      home = const WebDashboardScreen();
+    } else {
+      home = const MobileLoginScreen();
+    }
+
     return MaterialApp(
       title: 'SafeLabs',
       theme: ThemeData(
@@ -18,9 +26,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: kIsWeb
-          ? const Scaffold(body: Center(child: Text("Web Dashboard"))) // Placeholder for Web
-          : const MobileLoginScreen(),
+      home: home,
     );
   }
 }
