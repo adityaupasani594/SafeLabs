@@ -1,0 +1,36 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "woven-phoenix-447410-h8",
+          "appId": "1:712078236186:android:b6803a7d78781e881b8fa3",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "woven-phoenix-447410-h8",
+          "configurations": {
+            "android": "1:712078236186:android:b6803a7d78781e881b8fa3",
+            "web": "1:712078236186:web:398616b219f3b1ec1b8fa3"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "source": "functions"
+    }
+  ]
+}

@@ -1,9 +1,12 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:safe_labs/desktop/all_laboratories_page.dart';
+import 'package:safe_labs/desktop/dean_login_screen.dart';
 import 'package:safe_labs/desktop/settings_page.dart';
 import 'package:safe_labs/desktop/system_analytics_page.dart';
 
@@ -23,17 +26,49 @@ class WebDashboardScreen extends StatefulWidget {
 
 class _WebDashboardScreenState extends State<WebDashboardScreen> {
   String _selectedNavItem = 'Overview';
+  Map<String, dynamic>? _userData;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      final results = await FirebaseFunctions.instance.httpsCallable('getDashboardData').call();
+      if (mounted) {
+        setState(() {
+          _userData = Map<String, dynamic>.from(results.data['user']);
+          _isLoading = false;
+        });
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Failed to load user data.'), backgroundColor: Colors.red),
+        );
+        await FirebaseAuth.instance.signOut();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const DeanLoginScreen()),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      body: Row(
-        children: [
-          _buildSideBar(),
-          _buildMainContent(),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Row(
+              children: [
+                _buildSideBar(),
+                _buildMainContent(),
+              ],
+            ),
     );
   }
 
@@ -59,18 +94,20 @@ class _WebDashboardScreenState extends State<WebDashboardScreen> {
           _buildNavItem(Icons.settings_outlined, 'Settings', _selectedNavItem == 'Settings', () => setState(() => _selectedNavItem = 'Settings')),
           const Spacer(),
           InkWell(
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile page coming soon!'))),
+            onTap: () => setState(() => _selectedNavItem = 'Settings'),
             child: Row(
               children: [
-                const CircleAvatar(
-                  backgroundImage: NetworkImage('https://placehold.co/100x100/FFC107/000000?text=DS'),
+                CircleAvatar(
+                  backgroundImage: NetworkImage(
+                    _userData?['avatar_url'] as String? ?? 'https://placehold.co/100x100/E8EAFC/3F51B5?text=${_userData?['full_name']?[0] ?? 'D'}',
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Dean Sharma', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: _textColor)),
-                    Text('Command Center', style: GoogleFonts.inter(color: _subTextColor, fontSize: 12)),
+                    Text(_userData?['full_name'] as String? ?? 'Campus Dean', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: _textColor)),
+                    Text(_userData?['role'] as String? ?? 'Administrator', style: GoogleFonts.inter(color: _subTextColor, fontSize: 12)),
                   ],
                 )
               ],
@@ -200,8 +237,7 @@ class _OverviewContent extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-      ),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
       child: Row(
         children: [
           CircleAvatar(radius: 24, backgroundColor: iconBgColor, child: Icon(icon, color: isAlert ? Colors.red.shade700 : const Color(0xFF2E3A59))),
@@ -240,8 +276,7 @@ class _OverviewContent extends StatelessWidget {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: ['a', 'b', 'c'],
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               ),
             ],
           ),

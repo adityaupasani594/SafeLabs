@@ -1,19 +1,20 @@
 
 import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safe_labs/core/styles.dart';
-import 'package:safe_labs/mobile/screens/mobile_ai_chat_screen.dart'; // Import the new AI Chat Screen
+import 'package:safe_labs/mobile/screens/mobile_ai_chat_screen.dart';
 import 'package:safe_labs/mobile/screens/mobile_dashboard_screen.dart';
 import 'package:safe_labs/mobile/screens/mobile_profile_screen.dart';
 
-// --- UI CONSTANTS ---
 const Color lavender = Color(0xFFE6E6FA);
 const Color blackText = Color(0xFF1A1A1A);
 const Color greyText = Color(0xFF8A8A8E);
 
 class MobileMainScreen extends StatefulWidget {
-  const MobileMainScreen({super.key});
+  final User user;
+  const MobileMainScreen({super.key, required this.user});
 
   @override
   State<MobileMainScreen> createState() => _MobileMainScreenState();
@@ -22,11 +23,17 @@ class MobileMainScreen extends StatefulWidget {
 class _MobileMainScreenState extends State<MobileMainScreen> {
   int _selectedIndex = 0;
   late final PageController _pageController;
+  late final List<Widget> _widgetOptions;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
+    _widgetOptions = <Widget>[
+      const MobileDashboardScreen(),
+      const MobileAIChatScreen(),
+      MobileProfileScreen(user: widget.user),
+    ];
   }
 
   @override
@@ -34,13 +41,6 @@ class _MobileMainScreenState extends State<MobileMainScreen> {
     _pageController.dispose();
     super.dispose();
   }
-
-  // Updated list of pages to include the new AI Chat Screen
-  static const List<Widget> _widgetOptions = <Widget>[
-    MobileDashboardScreen(),
-    MobileAIChatScreen(), // The new AI Chat Screen
-    MobileProfileScreen(),
-  ];
 
   void _onItemTapped(int index) {
     _pageController.animateToPage(

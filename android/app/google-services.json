@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "712078236186",
+    "firebase_url": "https://woven-phoenix-447410-h8-default-rtdb.firebaseio.com",
+    "project_id": "woven-phoenix-447410-h8",
+    "storage_bucket": "woven-phoenix-447410-h8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:712078236186:android:b6803a7d78781e881b8fa3",
+        "android_client_info": {
+          "package_name": "com.vesit.safe_labs"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDr8JHzl0WtNNg64MUmW6xm-YeZGnBNCps"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

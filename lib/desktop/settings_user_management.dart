@@ -1,6 +1,8 @@
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:safe_labs/desktop/invite_user_dialog.dart';
 import 'package:safe_labs/desktop/settings_edit_admin_profile.dart';
 
 const Color _textColor = Color(0xFF333333);
@@ -10,6 +12,22 @@ const Color _accentColor = Color(0xFF3F51B5);
 class UserManagementScreen extends StatelessWidget {
   final VoidCallback onViewAll;
   const UserManagementScreen({super.key, required this.onViewAll});
+
+  Future<void> _inviteUser(BuildContext context) async {
+    final userData = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => const InviteUserDialog(),
+    );
+
+    if (userData == null || !context.mounted) return;
+
+    try {
+      final results = await FirebaseFunctions.instance.httpsCallable('inviteUser').call(userData);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(results.data['result'])));
+    } on FirebaseFunctionsException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'An error occurred.')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +67,7 @@ class UserManagementScreen extends StatelessWidget {
           ],
         ),
         ElevatedButton.icon(
-          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invite New User form coming soon!'))),
+          onPressed: () => _inviteUser(context),
           icon: const Icon(Icons.add, size: 18),
           label: const Text('Invite New User'),
           style: ElevatedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: const Color(0xFF2E3A59), elevation: 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18)),

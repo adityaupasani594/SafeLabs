@@ -1,15 +1,71 @@
-
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 const Color _textColor = Color(0xFF333333);
 const Color _subTextColor = Color(0xFF8A8A8E);
 
-class GeneralProfileScreen extends StatelessWidget {
+class GeneralProfileScreen extends StatefulWidget {
   const GeneralProfileScreen({super.key});
 
   @override
+  State<GeneralProfileScreen> createState() => _GeneralProfileScreenState();
+}
+
+class _GeneralProfileScreenState extends State<GeneralProfileScreen> {
+  Map<String, dynamic>? _userData;
+  bool _isLoading = true;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _departmentController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfileData();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _departmentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchProfileData() async {
+    try {
+      final results = await FirebaseFunctions.instance.httpsCallable('getDashboardData').call();
+      if (mounted) {
+        final userData = Map<String, dynamic>.from(results.data['user']);
+        setState(() {
+          _userData = userData;
+          _nameController.text = _userData?['full_name'] ?? '';
+          _emailController.text = _userData?['email'] ?? '';
+          // Using placeholders for fields not in the database
+          _phoneController.text = '+1 (555) 019-2834';
+          _departmentController.text = 'Science & Technology';
+          _isLoading = false;
+        });
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Failed to load profile data.'), backgroundColor: Colors.red),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Padding(
       padding: const EdgeInsets.all(30.0),
       child: Column(
@@ -54,22 +110,26 @@ class GeneralProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileCard(BuildContext context) {
+    final String avatarUrl = _userData?['avatar_url'] as String? ?? '';
+    final String initial = _userData?['full_name']?[0] ?? 'D';
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 30,
-            backgroundImage: NetworkImage('https://placehold.co/100x100/FFC107/000000?text=AS'),
+            backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+            child: avatarUrl.isEmpty ? Text(initial, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold)) : null,
           ),
           const SizedBox(width: 20),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Dr. Anya Sharma', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, color: _textColor)),
+              Text(_userData?['full_name'] ?? 'Campus Dean', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, color: _textColor)),
               const SizedBox(height: 5),
-              Text('Campus Dean - ID: #882190', style: GoogleFonts.inter(color: _subTextColor)),
+              Text('Campus Dean - ID: #${_userData?['user_id'] ?? '00000'}', style: GoogleFonts.inter(color: _subTextColor)),
             ],
           ),
           const Spacer(),
@@ -98,17 +158,17 @@ class GeneralProfileScreen extends StatelessWidget {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildTextField('Full Name', 'Anya Sharma')),
+              Expanded(child: _buildTextField('Full Name', _nameController)),
               const SizedBox(width: 20),
-              Expanded(child: _buildTextField('University Email', 'dean.sharma@uni.edu')),
+              Expanded(child: _buildTextField('University Email', _emailController)),
             ],
           ),
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildTextField('Phone Number', '+1 (555) 019-2834')),
+              Expanded(child: _buildTextField('Phone Number', _phoneController)),
               const SizedBox(width: 20),
-              Expanded(child: _buildTextField('Department', 'Science & Technology', isLocked: true)),
+              Expanded(child: _buildTextField('Department', _departmentController, isLocked: true)),
             ],
           ),
         ],
@@ -116,14 +176,14 @@ class GeneralProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String label, String value, {bool isLocked = false}) {
+  Widget _buildTextField(String label, TextEditingController controller, {bool isLocked = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: _subTextColor, fontSize: 12)),
         const SizedBox(height: 8),
         TextFormField(
-          initialValue: value,
+          controller: controller,
           readOnly: isLocked,
           decoration: InputDecoration(
             filled: true,

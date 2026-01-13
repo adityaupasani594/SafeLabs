@@ -1,9 +1,18 @@
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:safe_labs/desktop/dean_login_screen.dart';
 import 'package:safe_labs/desktop/web_dashboard_screen.dart';
+import 'package:safe_labs/firebase_options.dart';
 import 'package:safe_labs/mobile/screens/mobile_login_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -12,13 +21,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget home;
-    if (kIsWeb) {
-      home = const WebDashboardScreen();
-    } else {
-      home = const MobileLoginScreen();
-    }
-
     return MaterialApp(
       title: 'SafeLabs',
       theme: ThemeData(
@@ -26,7 +28,32 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: home,
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.active) {
+          final bool isLoggedIn = snapshot.hasData;
+          if (kIsWeb ||
+              defaultTargetPlatform == TargetPlatform.linux ||
+              defaultTargetPlatform == TargetPlatform.macOS ||
+              defaultTargetPlatform == TargetPlatform.windows) {
+            return isLoggedIn ? const WebDashboardScreen() : const DeanLoginScreen();
+          } else {
+            return const MobileLoginScreen();
+          }
+        } 
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      },
     );
   }
 }
